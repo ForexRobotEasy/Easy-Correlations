@@ -1,0 +1,96 @@
+
+//+------------------------------------------------------------------+
+//|                                                  Easy Correlations |
+//|                                                forexroboteasy.com |
+//|                                       Development - Forex Robot Easy Team |
+//+------------------------------------------------------------------+
+
+// Define input parameters
+input string Symbol1 = 'EURUSD';
+input string Symbol2 = 'GBPUSD';
+input int CorrelationPeriod = 14;
+input int RsiPeriod = 14;
+input double RsiOverboughtLevel = 70.0;
+input double RsiOversoldLevel = 30.0;
+
+// Define global variables
+double correlation;
+double rsi1, rsi2;
+double previousCorrelation = 0.0;
+
+//+------------------------------------------------------------------+
+//| Custom indicator initialization function                         |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+    // Add indicators to the chart
+    SetIndexStyle(0, DRAW_LINE);
+    SetIndexBuffer(0, correlation);
+    SetIndexLabel(0, 'Correlation');
+
+    SetIndexStyle(1, DRAW_LINE);
+    SetIndexBuffer(1, rsi1);
+    SetIndexLabel(1, 'RSI ' + Symbol1);
+
+    SetIndexStyle(2, DRAW_LINE);
+    SetIndexBuffer(2, rsi2);
+    SetIndexLabel(2, 'RSI ' + Symbol2);
+
+    // Set indicator parameters
+    SetIndexShift(1, 1);
+    SetIndexShift(2, 1);
+
+    return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Custom indicator iteration function                              |
+//+------------------------------------------------------------------+
+int OnCalculate(const int rates_total,
+                const int prev_calculated,
+                const datetime& time[],
+                const double& open[],
+                const double& high[],
+                const double& low[],
+                const double& close[],
+                const long& tick_volume[],
+                const long& volume[],
+                const int& spread[])
+{
+    // Calculate Pearson correlation
+    if (Bars(Symbol1, PERIOD_CURRENT) >= CorrelationPeriod && Bars(Symbol2, PERIOD_CURRENT) >= CorrelationPeriod)
+    {
+        correlation = iCorrelation(Symbol1, PERIOD_CURRENT, Symbol2, PERIOD_CURRENT, CorrelationPeriod, MODE_PRICE_CLOSE, 0);
+    }
+
+    // Calculate RSI for symbol 1
+    if (Bars(Symbol1, PERIOD_CURRENT) >= RsiPeriod)
+    {
+        rsi1 = iRSI(Symbol1, PERIOD_CURRENT, RsiPeriod, PRICE_CLOSE, 0);
+    }
+
+    // Calculate RSI for symbol 2
+    if (Bars(Symbol2, PERIOD_CURRENT) >= RsiPeriod)
+    {
+        rsi2 = iRSI(Symbol2, PERIOD_CURRENT, RsiPeriod, PRICE_CLOSE, 0);
+    }
+
+    // Check for divergence
+    if (correlation != 0.0 && rsi1 != 0.0 && rsi2 != 0.0)
+    {
+        if ((correlation > previousCorrelation && rsi1 > RsiOverboughtLevel && rsi2 < RsiOversoldLevel)
+            || (correlation < previousCorrelation && rsi1 < RsiOversoldLevel && rsi2 > RsiOverboughtLevel))
+        {
+            // Execute trading rules
+            // Buy Symbol1 and sell Symbol2
+            // Place stop loss and take profit levels
+
+            Print('Divergence detected. Trading rules executed.');
+        }
+
+        // Update previous correlation value
+        previousCorrelation = correlation;
+    }
+
+    return(rates_total);
+}
